@@ -1,9 +1,0 @@
-﻿  lw2.cpp
-D:\ПГТУ\ПараллПр\lw2\lw2\lw2.cpp(81,71): warning C4267: =: преобразование из "size_t" в "uint32_t"; возможна потеря данных
-D:\ПГТУ\ПараллПр\lw2\lw2\lw2.cpp(92,44): warning C4267: =: преобразование из "size_t" в "uint32_t"; возможна потеря данных
-  Создание кода
-  2 of 326 functions ( 0.6%) were compiled, the rest were copied from previous compilation.
-    0 functions were new in current compilation
-    0 functions had inline decision re-evaluated but remain unchanged
-  Создание кода завершено
-  lw2.vcxproj -> D:\ПГТУ\ПараллПр\lw2\x64\Release\lw2.exe
