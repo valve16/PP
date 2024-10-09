@@ -3,9 +3,32 @@
 #include <iostream>
 #include "EasyBMP.h"
 #include <memory>
+#include <chrono>
+#include <string>
+#include <vector>
+#include <fstream>
+
+const int BLUR_SIZE = 50; // Количество пикселей по обе стороны от текущего
+const int NUM_THREAD = 12;
+const int NUM_CORES = 3;
+
+struct TimeThreads
+{
+    int numThread = 0;
+    long long timeThread = 0;
+};
 
 
-using namespace std;
+struct ThreadParams 
+{
+    BMP* bmp;
+    unsigned char* buffer;
+    int startRow;
+    int endRow;
+    int threadNum;
+    DWORD_PTR coreAffinity; // Маска для привязки к ядрам
+};
+
 
 void WritePix2PicArray(unsigned char* buffer, BMP& bmp, int pixCol, int pixRow, RGBApixel pixData)
 {
@@ -26,53 +49,31 @@ RGBApixel GetPixFromPicArray(unsigned char* buffer, BMP& bmp, int pixCol, int pi
     return _pixData;
 }
 
-int main()
-{
-    SetConsoleOutputCP(1251);
-    BMP _InputBmp;
-    _InputBmp.ReadFromFile("in2.bmp");
+DWORD WINAPI ThreadProc(LPVOID lpParam) {
+    ThreadParams* params = static_cast<ThreadParams*>(lpParam);
+    BMP* bmp = params->bmp;
+    unsigned char* buffer = params->buffer;
+    int widthIm = bmp->TellWidth();
+    int heightIm = bmp->TellHeight();
 
-    // Вывод информации о изображении
-    cout << "BitDepth " << _InputBmp.TellBitDepth() << endl
-        << "NumberOfColor " << _InputBmp.TellNumberOfColors() << endl
-        << "Width " << _InputBmp.TellWidth() << endl
-        << "Height " << _InputBmp.TellHeight() << endl;
-    int widthIm = _InputBmp.TellWidth();
-    int heightIm = _InputBmp.TellHeight();
-    // Создание буфера для изображения
-    int _bufferSize = _InputBmp.TellWidth() * _InputBmp.TellHeight() * 3;
-    cout << "bufferSize " << _bufferSize << endl;
-    unique_ptr<unsigned char[]> _picBuffer(new unsigned char[_bufferSize]); // Использование уникального указателя
+    // Привязка потока к конкретному ядру
+    SetThreadAffinityMask(GetCurrentThread(), params->coreAffinity);
 
-    cout << "WritePix2PicArray" << endl;
-
-    // Запись пикселей изображения в буфер
-    for (int j = 0; j < _InputBmp.TellHeight(); j++)
+    for (int j = params->startRow; j < params->endRow; j++) 
     {
-        for (int i = 0; i < _InputBmp.TellWidth(); i++)
+        for (int i = 0; i < widthIm; i++) 
         {
-            WritePix2PicArray(_picBuffer.get(), _InputBmp, i, j, _InputBmp.GetPixel(i, j));
-        }
-    }
-
-    cout << "Change some pix data" << endl;
-
-    // Изменение части пикселей в буфере (синие пиксели в заданном диапазоне)
-    const int blurSize = 3; // Количество пикселей по обе стороны от текущего
-
-    for (int j = 100; j < min(heightIm, _InputBmp.TellHeight()); j++) {  // Проверка диапазона
-        for (int i = 10; i < min(widthIm, _InputBmp.TellWidth()); i++) { // Проверка диапазона
             int sumR = 0, sumG = 0, sumB = 0;
             int count = 0;
 
-            // Проход по окну размытия в горизонтальном направлении
-            for (int x = -blurSize; x <= blurSize; x++) {
+            for (int x = -BLUR_SIZE; x <= BLUR_SIZE; x++) 
+            {
                 int neighborX = i + x;
                 int neighborY = j;
 
-                // Проверка границ
-                if (neighborX >= 0 && neighborX < _InputBmp.TellWidth()) {
-                    RGBApixel neighborPix = _InputBmp.GetPixel(neighborX, neighborY);
+                if (neighborX >= 0 && neighborX < widthIm) 
+                {
+                    RGBApixel neighborPix = bmp->GetPixel(neighborX, neighborY);
                     sumR += neighborPix.Red;
                     sumG += neighborPix.Green;
                     sumB += neighborPix.Blue;
@@ -80,26 +81,71 @@ int main()
                 }
             }
 
-            // Установка нового значения пикселя
             RGBApixel _pixData;
             _pixData.Red = sumR / count;
             _pixData.Green = sumG / count;
             _pixData.Blue = sumB / count;
 
-            WritePix2PicArray(_picBuffer.get(), _InputBmp, i, j, _pixData);
+            WritePix2PicArray(buffer, *bmp, i, j, _pixData);
         }
     }
+    ExitThread(0);
+}
 
-    // Проверка изменения пикселя
-    RGBApixel _pix = GetPixFromPicArray(_picBuffer.get(), _InputBmp, 15, 150);
-    cout << (int)_pix.Red << " " << (int)_pix.Green << " " << (int)_pix.Blue << endl;
 
-    cout << "WritePicArrayToBMP" << endl;
+int main(int argc, char* argv[]) 
+{
+    if (argc != 4) 
+    {
+        std::cerr << "Usage: " << argv[0] << " <image_path> <num_threads> <num_cores>" << std::endl;
+        return -1;
+    }
+    const std::string filename = argv[1];
+    int numThreads = std::atoi(argv[2]);
+    int numCores = std::atoi(argv[3]);
+
+    auto start = std::chrono::steady_clock::now();
+    SetConsoleOutputCP(1251);
+    SetConsoleCP(1251);
+
+    BMP _InputBmp;
+    _InputBmp.ReadFromFile(filename.c_str());
+
+
+    // Создание буфера для изображения
+    int _bufferSize = _InputBmp.TellWidth() * _InputBmp.TellHeight() * 3;
+    std::unique_ptr<unsigned char[]> _picBuffer(new unsigned char[_bufferSize]); // Использование уникального указателя
+
+    int widthIm = _InputBmp.TellWidth();
+    int heightIm = _InputBmp.TellHeight();
+
+    int* threadNums = new int[numThreads];
+    HANDLE* handles = new HANDLE[numThreads];
+    std::vector<ThreadParams> params(numThreads);
+
+    int rowsPerThread = heightIm / numThreads;
+
+    // Запуск потоков
+    for (int i = 0; i < numThreads; i++)
+    {
+        params[i].bmp = &_InputBmp;
+        params[i].buffer = _picBuffer.get();
+        params[i].startRow = i * rowsPerThread;
+        params[i].endRow = (i == numThreads - 1) ? heightIm : (i + 1) * rowsPerThread;  // Последний поток обрабатывает остаток
+        params[i].threadNum = i + 1;
+        params[i].coreAffinity = (1 << (i % numCores)); // Привязка к конкретному ядру
+
+        handles[i] = CreateThread(NULL, 0, ThreadProc, &params[i], 0, NULL);
+    }
+
+    // Ожидание завершения всех потоков
+    WaitForMultipleObjects(numThreads, handles, TRUE, INFINITE);
+
 
     // Запись буфера обратно в BMP объект
-    for (int j = 0; j < _InputBmp.TellHeight(); j++) 
+    for (int j = 0; j < _InputBmp.TellHeight(); j++)
     {
-        for (int i = 0; i < _InputBmp.TellWidth(); i++) 
+        for (int i = 0; i < _InputBmp.TellWidth(); i++)
         {
             RGBApixel newPix = GetPixFromPicArray(_picBuffer.get(), _InputBmp, i, j);
             _InputBmp.SetPixel(i, j, newPix);  // Пример вызова метода SetPixel
@@ -107,9 +153,11 @@ int main()
     }
 
     // Сохранение измененного изображения в файл
-    _InputBmp.WriteToFile("test-out.bmp");
+    _InputBmp.WriteToFile("out.bmp");
 
-    cout << "Изменения успешно применены и файл сохранен." << endl;
+    auto end = std::chrono::steady_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
 
+    std::cout << "Threads: " << numThreads << " Time: " << duration << std::endl;
     return 0;
 }

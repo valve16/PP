@@ -1,9 +1,8 @@
 ﻿  lw2.cpp
-D:\ПГТУ\ПараллПр\lw2\lw2\lw2.cpp(81,71): warning C4267: =: преобразование из "size_t" в "uint32_t"; возможна потеря данных
-D:\ПГТУ\ПараллПр\lw2\lw2\lw2.cpp(92,44): warning C4267: =: преобразование из "size_t" в "uint32_t"; возможна потеря данных
+D:\ПГТУ\PP\lw2\lw2\lw2.cpp(142,37): warning C4334: <<: результат 32-разрядного смещения неявно преобразуется в 64-разрядное значение (предполагалось 64-разрядное смещение?)
   Создание кода
-  2 of 326 functions ( 0.6%) were compiled, the rest were copied from previous compilation.
+  1 of 166 functions ( 0.6%) were compiled, the rest were copied from previous compilation.
     0 functions were new in current compilation
     0 functions had inline decision re-evaluated but remain unchanged
   Создание кода завершено
-  lw2.vcxproj -> D:\ПГТУ\ПараллПр\lw2\x64\Release\lw2.exe
+  lw2.vcxproj -> D:\ПГТУ\PP\lw2\x64\Release\lw2.exe
