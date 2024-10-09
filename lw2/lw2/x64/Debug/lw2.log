@@ -1,4 +1,2 @@
 ﻿  lw2.cpp
-D:\ПГТУ\ПараллПр\lw2\lw2\lw2.cpp(81,71): warning C4267: =: преобразование из "size_t" в "uint32_t"; возможна потеря данных
-D:\ПГТУ\ПараллПр\lw2\lw2\lw2.cpp(92,44): warning C4267: =: преобразование из "size_t" в "uint32_t"; возможна потеря данных
-  lw2.vcxproj -> D:\ПГТУ\ПараллПр\lw2\x64\Debug\lw2.exe
+  lw2.vcxproj -> D:\ПГТУ\PP\lw2\x64\Debug\lw2.exe

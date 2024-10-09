@@ -1,191 +1,115 @@
-﻿#include <windows.h>
+﻿#define _CRT_SECURE_NO_WARNINGS
+#include <Windows.h>
 #include <iostream>
-#include <fstream>
-#include <vector>
-#include <thread>
-#include <chrono>
-#include <algorithm>
-#include <string>
+#include "EasyBMP.h"
+#include <memory>
 
-const int NUM_THR = 1;
 
-#pragma pack(push, 1) // Пакетирование структур для правильного чтения
+using namespace std;
 
-struct BMPFileHeader {
-    uint16_t bfType;      // Тип файла (0x4D42 для "BM")
-    uint32_t bfSize;      // Размер файла в байтах
-    uint16_t bfReserved1; // Зарезервировано
-    uint16_t bfReserved2; // Зарезервировано
-    uint32_t bfOffBits;   // Смещение до данных
-};
-
-struct BMPInfoHeader {
-    uint32_t biSize;          // Размер заголовка
-    int32_t biWidth;          // Ширина изображения
-    int32_t biHeight;         // Высота изображения
-    uint16_t biPlanes;        // Количество плоскостей
-    uint16_t biBitCount;      // Количество бит на пиксель
-    uint32_t biCompression;    // Тип сжатия
-    uint32_t biSizeImage;     // Размер изображения
-    int32_t biXPelsPerMeter;   // Горизонтальное разрешение
-    int32_t biYPelsPerMeter;   // Вертикальное разрешение
-    uint32_t biClrUsed;       // Количество цветов
-    uint32_t biClrImportant;   // Важные цвета
-};
-
-#pragma pack(pop) // Вернуть упаковку структур к стандартной
-
-bool readBMP(const std::string& filename, std::vector<uint8_t>& imageData, int& width, int& height) {
-    std::ifstream file(filename, std::ios::binary);
-    if (!file) {
-        std::cerr << "Unable to open BMP file: " << filename << std::endl;
-        return false;
-    }
-
-    BMPFileHeader fileHeader;
-    BMPInfoHeader infoHeader;
-
-    file.read(reinterpret_cast<char*>(&fileHeader), sizeof(fileHeader));
-    file.read(reinterpret_cast<char*>(&infoHeader), sizeof(infoHeader));
-
-    width = infoHeader.biWidth;
-    height = infoHeader.biHeight;
-    std::cout << "File Type: " << fileHeader.bfType << std::endl;
-    std::cout << "Bit Count: " << infoHeader.biBitCount << std::endl;
-    std::cout << "Width: " << infoHeader.biWidth << ", Height: " << infoHeader.biHeight << std::endl;
-    // Проверка формата BMP
-    if (fileHeader.bfType != 0x4D42) {
-        std::cerr << "Unsupported BMP format." << std::endl;
-        return false;
-    }
-
-    // Расчет размера данных и чтение пикселей
-    imageData.resize(height * width * 3);
-    file.seekg(fileHeader.bfOffBits);
-    file.read(reinterpret_cast<char*>(imageData.data()), imageData.size());
-
-    return true;
+void WritePix2PicArray(unsigned char* buffer, BMP& bmp, int pixCol, int pixRow, RGBApixel pixData)
+{
+    // Запись данных пикселя в буфер
+    buffer[pixCol * 3 + pixRow * bmp.TellWidth() * 3] = pixData.Red;
+    buffer[pixCol * 3 + pixRow * bmp.TellWidth() * 3 + 1] = pixData.Green;
+    buffer[pixCol * 3 + pixRow * bmp.TellWidth() * 3 + 2] = pixData.Blue;
 }
 
-bool saveBMP(const std::string& filename, const std::vector<uint8_t>& imageData, int width, int height) {
-    std::ofstream file(filename, std::ios::binary);
-    if (!file) {
-        std::cerr << "Unable to open output BMP file: " << filename << std::endl;
-        return false;
+RGBApixel GetPixFromPicArray(unsigned char* buffer, BMP& bmp, int pixCol, int pixRow)
+{
+    // Чтение данных пикселя из буфера
+    RGBApixel _pixData;
+    _pixData.Red = buffer[pixCol * 3 + pixRow * bmp.TellWidth() * 3];
+    _pixData.Green = buffer[pixCol * 3 + pixRow * bmp.TellWidth() * 3 + 1];
+    _pixData.Blue = buffer[pixCol * 3 + pixRow * bmp.TellWidth() * 3 + 2];
+
+    return _pixData;
+}
+
+int main()
+{
+    SetConsoleOutputCP(1251);
+    BMP _InputBmp;
+    _InputBmp.ReadFromFile("in2.bmp");
+
+    // Вывод информации о изображении
+    cout << "BitDepth " << _InputBmp.TellBitDepth() << endl
+        << "NumberOfColor " << _InputBmp.TellNumberOfColors() << endl
+        << "Width " << _InputBmp.TellWidth() << endl
+        << "Height " << _InputBmp.TellHeight() << endl;
+    int widthIm = _InputBmp.TellWidth();
+    int heightIm = _InputBmp.TellHeight();
+    // Создание буфера для изображения
+    int _bufferSize = _InputBmp.TellWidth() * _InputBmp.TellHeight() * 3;
+    cout << "bufferSize " << _bufferSize << endl;
+    unique_ptr<unsigned char[]> _picBuffer(new unsigned char[_bufferSize]); // Использование уникального указателя
+
+    cout << "WritePix2PicArray" << endl;
+
+    // Запись пикселей изображения в буфер
+    for (int j = 0; j < _InputBmp.TellHeight(); j++)
+    {
+        for (int i = 0; i < _InputBmp.TellWidth(); i++)
+        {
+            WritePix2PicArray(_picBuffer.get(), _InputBmp, i, j, _InputBmp.GetPixel(i, j));
+        }
     }
 
-    BMPFileHeader fileHeader;
-    BMPInfoHeader infoHeader;
+    cout << "Change some pix data" << endl;
 
-    fileHeader.bfType = 0x4D42; // "BM"
-    fileHeader.bfSize = sizeof(BMPFileHeader) + sizeof(BMPInfoHeader) + imageData.size();
-    fileHeader.bfReserved1 = 0;
-    fileHeader.bfReserved2 = 0;
-    fileHeader.bfOffBits = sizeof(BMPFileHeader) + sizeof(BMPInfoHeader);
+    // Изменение части пикселей в буфере (синие пиксели в заданном диапазоне)
+    const int blurSize = 3; // Количество пикселей по обе стороны от текущего
 
-    infoHeader.biSize = sizeof(BMPInfoHeader);
-    infoHeader.biWidth = width;
-    infoHeader.biHeight = height;
-    infoHeader.biPlanes = 1;
-    infoHeader.biBitCount = 24;
-    infoHeader.biCompression = 0;
-    infoHeader.biSizeImage = imageData.size();
-    infoHeader.biXPelsPerMeter = 0;
-    infoHeader.biYPelsPerMeter = 0;
-    infoHeader.biClrUsed = 0;
-    infoHeader.biClrImportant = 0;
+    for (int j = 100; j < min(heightIm, _InputBmp.TellHeight()); j++) {  // Проверка диапазона
+        for (int i = 10; i < min(widthIm, _InputBmp.TellWidth()); i++) { // Проверка диапазона
+            int sumR = 0, sumG = 0, sumB = 0;
+            int count = 0;
 
-    file.write(reinterpret_cast<char*>(&fileHeader), sizeof(fileHeader));
-    file.write(reinterpret_cast<char*>(&infoHeader), sizeof(infoHeader));
-    file.write(reinterpret_cast<const char*>(imageData.data()), imageData.size());
+            // Проход по окну размытия в горизонтальном направлении
+            for (int x = -blurSize; x <= blurSize; x++) {
+                int neighborX = i + x;
+                int neighborY = j;
 
-    return true;
-}
-void gaussianBlur(std::vector<uint8_t>& imageData, int width, int height, int startRow, int endRow) {
-    const float kernel[3][3] = {
-        {1 / 16.0f, 2 / 16.0f, 1 / 16.0f},
-        {2 / 16.0f, 4 / 16.0f, 2 / 16.0f},
-        {1 / 16.0f, 2 / 16.0f, 1 / 16.0f}
-    };
-
-    std::vector<uint8_t> outputData = imageData;
-
-    for (int y = startRow; y < endRow; ++y) {
-        for (int x = 1; x < width - 1; ++x) {
-            float r = 0, g = 0, b = 0;
-
-            // Применение ядра размытия
-            for (int ky = -1; ky <= 1; ++ky) {
-                for (int kx = -1; kx <= 1; ++kx) {
-                    int neighborX = x + kx;
-                    int neighborY = y + ky;
-
-                    // Проверка границ
-                    if (neighborX >= 0 && neighborX < width && neighborY >= 0 && neighborY < height)
-                    {
-                        int pixelIndex = (neighborY * width + neighborX) * 3;
-                        r += outputData[pixelIndex + 2] * kernel[ky + 1][kx + 1]; // R
-                        g += outputData[pixelIndex + 1] * kernel[ky + 1][kx + 1]; // G
-                        b += outputData[pixelIndex] * kernel[ky + 1][kx + 1]; // B
-                    }
+                // Проверка границ
+                if (neighborX >= 0 && neighborX < _InputBmp.TellWidth()) {
+                    RGBApixel neighborPix = _InputBmp.GetPixel(neighborX, neighborY);
+                    sumR += neighborPix.Red;
+                    sumG += neighborPix.Green;
+                    sumB += neighborPix.Blue;
+                    count++;
                 }
             }
 
-            int outputIndex = (y * width + x) * 3;
-            imageData[outputIndex + 2] = static_cast<uint8_t>(std::clamp(r, 0.0f, 255.0f));
-            imageData[outputIndex + 1] = static_cast<uint8_t>(std::clamp(g, 0.0f, 255.0f));
-            imageData[outputIndex] = static_cast<uint8_t>(std::clamp(b, 0.0f, 255.0f));
+            // Установка нового значения пикселя
+            RGBApixel _pixData;
+            _pixData.Red = sumR / count;
+            _pixData.Green = sumG / count;
+            _pixData.Blue = sumB / count;
+
+            WritePix2PicArray(_picBuffer.get(), _InputBmp, i, j, _pixData);
         }
     }
-}
-void blurImage(std::vector<uint8_t>& imageData, int width, int height, int numThreads) {
-    std::vector<std::thread> threads;
-    int rowsPerThread = height / numThreads;
 
-    for (int i = 0; i < numThreads; ++i) {
-        int startRow = i * rowsPerThread;
-        int endRow = (i == numThreads - 1) ? height : startRow + rowsPerThread;
-        threads.emplace_back(gaussianBlur, std::ref(imageData), width, height, startRow, endRow);
+    // Проверка изменения пикселя
+    RGBApixel _pix = GetPixFromPicArray(_picBuffer.get(), _InputBmp, 15, 150);
+    cout << (int)_pix.Red << " " << (int)_pix.Green << " " << (int)_pix.Blue << endl;
+
+    cout << "WritePicArrayToBMP" << endl;
+
+    // Запись буфера обратно в BMP объект
+    for (int j = 0; j < _InputBmp.TellHeight(); j++) 
+    {
+        for (int i = 0; i < _InputBmp.TellWidth(); i++) 
+        {
+            RGBApixel newPix = GetPixFromPicArray(_picBuffer.get(), _InputBmp, i, j);
+            _InputBmp.SetPixel(i, j, newPix);  // Пример вызова метода SetPixel
+        }
     }
 
-    for (auto& thread : threads) {
-        thread.join();
-    }
-}
-int main(int argc, char* argv[]) {
-    SetConsoleCP(1251);
-    SetConsoleOutputCP(1251);
-    /*if (argc < 4) {
-        std::cerr << "Usage: " << argv[0] << " <input.bmp> <output.bmp> <numThreads>" << std::endl;
-        return 1;
-    }*/
+    // Сохранение измененного изображения в файл
+    _InputBmp.WriteToFile("test-out.bmp");
 
-    //std::string inputFile = argv[1];
-    //std::string outputFile = argv[2];
-    //int numThreads = std::stoi(argv[3]);
-    std::string inputFile = "in2.bmp";
-    std::string outputFile = "out.bmp";
-    int numThreads = NUM_THR;
+    cout << "Изменения успешно применены и файл сохранен." << endl;
 
-    int width, height;
-    std::vector<uint8_t> imageData;
-
-    auto startTime = std::chrono::high_resolution_clock::now();
-
-    // Чтение изображения
-    if (!readBMP(inputFile, imageData, width, height)) {
-        return 1;
-    }
-
-    // Применение размытия
-    blurImage(imageData, width, height, numThreads);
-
-    // Сохранение изображения
-    if (!saveBMP(outputFile, imageData, width, height)) {
-        return 1;
-    }
-
-    auto endTime = std::chrono::high_resolution_clock::now();
-    std::chrono::duration<double, std::milli> duration = endTime - startTime;
-    std::cout << duration.count() << " мс\n";
+    return 0;
 }
