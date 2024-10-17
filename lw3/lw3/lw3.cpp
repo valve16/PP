@@ -10,18 +10,19 @@ DWORD startTime;
 DWORD WINAPI ThreadProc(CONST LPVOID lpParam)
 {
     int threadNum = *static_cast<int*>(lpParam);  // Получение номера потока
-    const int operationCount = 20;               
-    std::ofstream outFile("out.txt", std::ios_base::app); // Открытие файла на дозапись
+    const int operationCount = 15;
+    std::string filename = (threadNum == 1) ? "output3.txt" : "output4.txt";
 
     for (int i = 0; i < operationCount; i++)
     {
-        Sleep(100); 
-        DWORD currentTime = timeGetTime();  
-        DWORD elapsedTime = currentTime - startTime; 
-        outFile << threadNum << "|" << elapsedTime << std::endl; 
+        Sleep(100);
+        DWORD currentTime = timeGetTime();
+        DWORD elapsedTime = currentTime - startTime;
+        std::ofstream outFile(filename, std::ios::app);
+        outFile << threadNum << "|" << elapsedTime << std::endl;
+        outFile.close();
     }
 
-    outFile.close();
     ExitThread(0);  // Завершение потока
 }
 
