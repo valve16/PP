@@ -6,23 +6,26 @@
 #pragma comment(lib, "winmm.lib") 
 
 DWORD startTime;
-HANDLE hMutex;
 
 DWORD WINAPI ThreadProc(CONST LPVOID lpParam)
 {
     int threadNum = *static_cast<int*>(lpParam);  // Получение номера потока
     const int operationCount = 15;
 
+    std::string filename = (threadNum == 1) ? "output3.txt" : "output4.txt";
     for (int i = 0; i < operationCount; i++)
     {
-        WaitForSingleObject(hMutex, INFINITE);
-        Sleep(100);
+        for (int j = 0; j < 10000; ++j)
+        {
+            for (int k = 0; k < 10000; ++k)
+            {
+            }
+        }
+        std::ofstream outFile(filename, std::ios::app);
         DWORD currentTime = timeGetTime();
         DWORD elapsedTime = currentTime - startTime;
-        std::ofstream outFile("output.txt", std::ios::app);
         outFile << threadNum << "|" << elapsedTime << std::endl;
         outFile.close();
-        ReleaseMutex(hMutex);
     }
 
     ExitThread(0);  // Завершение потока
@@ -40,7 +43,6 @@ int main(int argc, char* argv[])
 
     startTime = timeGetTime();
 
-    hMutex = CreateMutex(NULL, FALSE, NULL);
 
     for (int i = 0; i < N; ++i)
     {
@@ -55,13 +57,10 @@ int main(int argc, char* argv[])
 
     WaitForMultipleObjects(N, handles, TRUE, INFINITE);
 
-    // Освобождение ресурсов
     for (int i = 0; i < N; ++i)
     {
         CloseHandle(handles[i]);
     }
-
-    CloseHandle(hMutex);
 
     std::cout << "Все потоки завершили работу." << std::endl;
 
