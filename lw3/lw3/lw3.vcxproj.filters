@@ -19,4 +19,12 @@
       <Filter>Исходные файлы</Filter>
     </ClCompile>
   </ItemGroup>
+  <ItemGroup>
+    <Text Include="output3.txt" />
+    <Text Include="output4.txt" />
+    <Text Include="output1.txt" />
+    <Text Include="output2.txt" />
+    <Text Include="output5.txt" />
+    <Text Include="output6.txt" />
+  </ItemGroup>
 </Project>
