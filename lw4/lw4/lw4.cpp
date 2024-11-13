@@ -9,7 +9,7 @@
 #include <fstream>
 
 const int BLUR_SIZE = 50; // Количество пикселей по обе стороны от текущего
-const int NUM_THREAD = 12;
+const int NUM_THREAD = 3;
 const int NUM_CORES = 3;
 
 struct TimeThreads
@@ -73,15 +73,15 @@ DWORD WINAPI ThreadProc(LPVOID lpParam) {
     SetThreadAffinityMask(GetCurrentThread(), params->coreAffinity);
 
     // Установка приоритета потока
-    if (params->threadNum == 1) {
-        SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_ABOVE_NORMAL);
-    }
-    else if (params->threadNum == 2) {
-        SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_NORMAL);
-    }
-    else {
-        SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_BELOW_NORMAL);
-    }
+    //if (params->threadNum == 1) {
+    //    SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_ABOVE_NORMAL);
+    //}
+    //else if (params->threadNum == 2) {
+    //    SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_NORMAL);
+    //}
+    //else {
+    //    SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_NORMAL);
+    //}
 
 
 
@@ -118,7 +118,7 @@ DWORD WINAPI ThreadProc(LPVOID lpParam) {
             auto end = std::chrono::steady_clock::now();
             auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - params->startTime).count();
             std::ofstream outFile(filename, std::ios::app);
-            outFile << params->threadNum << "|" << duration << std::endl;
+            outFile << params->threadNum << " " << duration << std::endl;
             outFile.close();
 
             totalProcessedPixels++;
@@ -141,8 +141,8 @@ int main(int argc, char* argv[])
     //int numCores = std::atoi(argv[3]);  
     
     const std::string filename = "in1.bmp";
-    int numThreads = 3;
-    int numCores = 1;
+    int numThreads = NUM_THREAD;
+    int numCores = NUM_CORES;
 
     auto startTime = std::chrono::steady_clock::now();
 
