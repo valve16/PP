@@ -1,0 +1,6 @@
+﻿  lw5.cpp
+D:\ПГТУ\PP\lw5\lw5\lw5.cpp(73,10): warning C4311: приведение типов: усечение указателя из "const LPVOID" в "int"
+D:\ПГТУ\PP\lw5\lw5\lw5.cpp(73,10): warning C4302: приведение типов: усечение из "const LPVOID" к "int"
+D:\ПГТУ\PP\lw5\lw5\lw5.cpp(83,11): warning C4311: приведение типов: усечение указателя из "const LPVOID" в "int"
+D:\ПГТУ\PP\lw5\lw5\lw5.cpp(83,11): warning C4302: приведение типов: усечение из "const LPVOID" к "int"
+  lw5.vcxproj -> D:\ПГТУ\PP\lw5\x64\Debug\lw5.exe

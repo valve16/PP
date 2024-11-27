@@ -1,0 +1,6 @@
+﻿  lw5mutex.cpp
+D:\ПГТУ\PP\lw5mutex\lw5mutex\lw5mutex.cpp(66,13): warning C4311: приведение типов: усечение указателя из "const LPVOID" в "int"
+D:\ПГТУ\PP\lw5mutex\lw5mutex\lw5mutex.cpp(66,13): warning C4302: приведение типов: усечение из "const LPVOID" к "int"
+D:\ПГТУ\PP\lw5mutex\lw5mutex\lw5mutex.cpp(71,14): warning C4311: приведение типов: усечение указателя из "const LPVOID" в "int"
+D:\ПГТУ\PP\lw5mutex\lw5mutex\lw5mutex.cpp(71,14): warning C4302: приведение типов: усечение из "const LPVOID" к "int"
+  lw5mutex.vcxproj -> D:\ПГТУ\PP\lw5mutex\x64\Debug\lw5mutex.exe
